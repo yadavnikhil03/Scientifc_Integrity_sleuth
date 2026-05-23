@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
 
 jobs:
   test:
@@ -20,7 +24,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install backend deps
         run: |
@@ -38,7 +42,7 @@ jobs:
       - name: Install frontend deps
         run: |
           cd frontend
-          npm ci
+          npm install
 
       - name: Lint frontend
         run: |
@@ -50,12 +54,16 @@ jobs:
           cd frontend
           npm run build
 
+      - name: Install Playwright browsers (with safe fallback)
+        run: |
+          cd frontend
+          npm install
+          # Try to install system dependencies + browsers; if distro not supported, install browsers only
+          npx playwright install --with-deps || npx playwright install chromium
+
       - name: Run Playwright E2E
-        uses: microsoft/playwright-github-action@v1
-        with:
-          run: |
-            cd frontend
-            npm ci
-            npx playwright install --with-deps
-            npx vite preview --port 5173 &
-            npx playwright test --timeout=30000
+        run: |
+          cd frontend
+          npx vite preview --port 5173 &
+          export PW_BASE_URL=http://localhost:5173
+          npx playwright test --project=chromium --timeout=30000
