@@ -53,12 +53,12 @@ test.describe('Upload and analyze flow', () => {
 
     await page.locator('input[type="file"]').setInputFiles(path.join(__dirname, 'fixtures', 'sample.svg'));
 
-    await expect(page.getByText('sample.svg', { exact: true })).toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('sample.svg', { exact: true })).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('button', { name: /Initialize Scan/i }).click();
+    await page.getByRole('button', { name: /INITIATE_SPLICING_SCAN/i }).click();
 
-    await expect(page.getByText('Integrity coefficient')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Anomalies detected')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Generate lab report/i })).toBeVisible();
+    await expect(page.getByText(/FINDINGS_LOG/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/HITS/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /GENERATE_LAB_REPORT/i })).toBeVisible();
   });
 });

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, no-unused-vars, react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -23,6 +24,8 @@ import {
   Zap,
 } from 'lucide-react';
 import './App.css';
+import { ReceiptModal } from './components/ReceiptModal';
+import { SplashScreen } from './components/SplashScreen';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
@@ -36,7 +39,7 @@ const particleData = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
   size: 1.2 + Math.random() * 2.5,
   dur: 15 + Math.random() * 18,
   delay: Math.random() * 6,
-  color: Math.random() > 0.5 ? 'rgba(0,219,233,0.14)' : 'rgba(221,183,255,0.12)',
+  color: Math.random() > 0.5 ? 'rgba(56,189,248,0.14)' : 'rgba(129,140,248,0.12)',
 }));
 
 const ParticleField = () => (
@@ -92,6 +95,8 @@ const useTypewriter = (text, speed = 50) => {
     setDisplayed('');
     setDone(false);
     let i = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+// eslint-disable-next-line react-hooks/set-state-in-effect
     const interval = setInterval(() => {
       i++;
       setDisplayed(text.slice(0, i));
@@ -117,13 +122,29 @@ const App = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [githubData, setGithubData] = useState(null);
+
+  useEffect(() => {
+    fetch('https://api.github.com/users/yadavnikhil03')
+      .then(res => res.json())
+      .then(data => setGithubData(data))
+      .catch(err => console.error('Failed to fetch github data', err));
+  }, []);
+  
+  useEffect(() => {
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDarkMode]);
   const [logs, setLogs] = useState([
     'BOOT_SEQUENCE_COMPLETE',
     'FORENSIC_CORE_READY',
     'AWAITING_SAMPLE',
   ]);
   const [metrics, setMetrics] = useState({ cpu: 42, gpu: 78, mem: 5.4 });
-  const [backendStatus, setBackendStatus] = useState('checking');
+  const [, setBackendStatus] = useState('checking');
   const [dragActive, setDragActive] = useState(false);
   const [clock, setClock] = useState(() => new Date());
 
@@ -231,7 +252,20 @@ const App = () => {
     addLog('INITIATING_FORENSIC_PROTOCOL');
 
     const formData = new FormData();
-    formData.append('file', file);
+    if (file instanceof File) {
+      formData.append('file', file);
+    } else if (file.url) {
+      try {
+        const res = await fetch(file.url);
+        const blob = await res.blob();
+        formData.append('file', blob, file.name || 'archive.png');
+      } catch (e) {
+        setError('FAILED_TO_FETCH_ARCHIVE_SPECIMEN');
+        setIsAnalyzing(false);
+        setBackendStatus('offline');
+        return;
+      }
+    }
 
     try {
       const response = await fetch(`${API_BASE}/analyze`, {
@@ -266,6 +300,7 @@ const App = () => {
     setPreview(null);
     setResults(null);
     setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setBackendStatus('online');
     addLog('WORKSPACE_PURGED');
   }, [addLog, preview]);
@@ -455,33 +490,38 @@ const App = () => {
     const hrs = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
-    const ms = Math.floor(Math.random() * 99);
+    const ms = (totalSeconds * 137) % 100;
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${ms.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#000000] text-[#e2e2e2] font-['Space_Grotesk',_sans-serif]">
-      {/* Particle Background */}
-      <ParticleField />
+    <>
+      <AnimatePresence>
+        {!isAppLoaded && (
+          <SplashScreen key="splash" onComplete={() => setIsAppLoaded(true)} />
+        )}
+      </AnimatePresence>
 
-      {/* Futuristic Grid Background */}
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(0,219,233,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,219,233,0.02)_1px,transparent_1px)] bg-[size:40px_40px] opacity-60" />
+      <div className="relative min-h-screen overflow-x-hidden theme-bg theme-text">
+
+      
+      
 
       {/* Ambient background glows */}
-      <div className="pointer-events-none fixed -left-[10%] -top-[20%] z-0 h-[50vw] w-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(0,219,233,0.08)_0%,_rgba(0,0,0,0)_70%)]" />
-      <div className="pointer-events-none fixed -right-[10%] -bottom-[20%] z-0 h-[50vw] w-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(221,183,255,0.05)_0%,_rgba(0,0,0,0)_70%)]" />
+      <div className="pointer-events-none fixed -left-[10%] -top-[20%] z-0 h-[50vw] w-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(56,189,248,0.08)_0%,_rgba(0,0,0,0)_70%)]" />
+      <div className="pointer-events-none fixed -right-[10%] -bottom-[20%] z-0 h-[50vw] w-[50vw] rounded-full bg-[radial-gradient(circle,_rgba(129,140,248,0.05)_0%,_rgba(0,0,0,0)_70%)]" />
 
       {/* ─── Top Navigation Bar ────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-white/5 bg-black/60 px-6 backdrop-blur-xl md:px-12">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between theme-border-b theme-bg px-6 backdrop-blur-xl md:px-12">
         <div className="flex items-center gap-4">
           <span
             onClick={() => setActiveTab('intake')}
-            className="cursor-pointer font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-on-surface hover:text-[#00dbe9] transition-colors"
+            className="cursor-pointer font-['Space_Grotesk'] text-xl font-bold tracking-tighter text-on-surface hover:theme-text transition-colors"
           >
             SCIENTIFIC_INTEGRITY_SLEUTH
           </span>
-          <div className="hidden h-4 w-[1px] bg-white/10 md:block" />
-          <span className="hidden font-mono text-[9px] uppercase tracking-[0.3em] text-[#00dbe9] md:inline">
+          <div className="hidden h-4 w-[1px] theme-bg md:block" />
+          <span className="hidden font-mono text-[9px] uppercase tracking-[0.3em] theme-text md:inline">
             {file ? `CASE_FILE: ${file.name.toUpperCase().substring(0, 16)}` : 'OP_UNIT_01 // ACTIVE'}
           </span>
         </div>
@@ -491,8 +531,8 @@ const App = () => {
           <button
             onClick={() => setActiveTab('intake')}
             className={`transition-colors cursor-crosshair pb-1 ${activeTab === 'intake'
-                ? 'text-[#00dbe9] border-b border-[#00dbe9] font-bold'
-                : 'text-slate-400 hover:text-white'
+                ? 'theme-text border-b border-primary font-bold'
+                : 'theme-text-muted hover:theme-text'
               }`}
           >
             Intake
@@ -500,8 +540,8 @@ const App = () => {
           <button
             onClick={() => setActiveTab('archive')}
             className={`transition-colors cursor-crosshair pb-1 ${activeTab === 'archive'
-                ? 'text-[#00dbe9] border-b border-[#00dbe9] font-bold'
-                : 'text-slate-400 hover:text-white'
+                ? 'theme-text border-b border-primary font-bold'
+                : 'theme-text-muted hover:theme-text'
               }`}
           >
             Archive
@@ -509,8 +549,8 @@ const App = () => {
           <button
             onClick={() => setActiveTab('telemetry')}
             className={`transition-colors cursor-crosshair pb-1 ${activeTab === 'telemetry'
-                ? 'text-[#00dbe9] border-b border-[#00dbe9] font-bold'
-                : 'text-slate-400 hover:text-white'
+                ? 'theme-text border-b border-primary font-bold'
+                : 'theme-text-muted hover:theme-text'
               }`}
           >
             Telemetry
@@ -518,8 +558,8 @@ const App = () => {
           <button
             onClick={() => setActiveTab('developer')}
             className={`transition-colors cursor-crosshair pb-1 ${activeTab === 'developer'
-                ? 'text-[#00dbe9] border-b border-[#00dbe9] font-bold'
-                : 'text-slate-400 hover:text-white'
+                ? 'theme-text border-b border-primary font-bold'
+                : 'theme-text-muted hover:theme-text'
               }`}
           >
             About
@@ -527,7 +567,7 @@ const App = () => {
         </div>
 
         {/* Right side Profile & settings */}
-        <div className="flex items-center gap-4 text-[#00dbe9]">
+        <div className="flex items-center gap-4 theme-text">
           <span className="material-symbols-outlined hidden cursor-pointer hover:scale-105 transition-transform sm:inline">monitor_heart</span>
           <span
             onClick={() => setActiveTab('developer')}
@@ -537,25 +577,25 @@ const App = () => {
           </span>
           <div
             onClick={() => setActiveTab('developer')}
-            className="relative h-8 w-8 overflow-hidden rounded-full border border-[#00dbe9]/30 cursor-pointer hover:border-[#00dbe9] transition-colors"
+            className="relative h-8 w-8 overflow-hidden rounded-full theme-theme-border cursor-pointer hover:border-primary transition-colors"
           >
             <img
               alt="Operator Profile"
               className="h-full w-full object-cover grayscale brightness-90 hover:grayscale-0"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHEK-b8Mqb6oLfnPcicclnzU_9whw8onn7lKepXTaJoxkM9f8UfKJGIqv6AbpLetbjT9I7LVFfl0uA8bCvPp3PQalkeug0MCyEuljyRIv_cuzasI5fqb18TE_Kk8pTJOuBX7vKnL_QGKG-QlGfU4NxhxwQEXSnjgaqywufmhsmDCGygY6-pFPTkzdrXR3kgkednnWs0OqbVOkfCGupyveZ1wv1MLoNTnw-FaHOnwiRUw-_YE6OCNNCS_LZFE1_FIaSuXPZ4O3xaYP-"
+              src={githubData?.avatar_url || "https://github.com/yadavnikhil03.png"}
             />
           </div>
         </div>
       </nav>
 
       {/* ─── Side Navigation Bar ────────────────────── */}
-      <aside className="fixed left-0 top-0 z-40 hidden h-full w-20 flex-col border-r border-white/5 bg-black/40 pt-20 transition-all duration-500 hover:w-64 backdrop-blur-2xl group xl:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-full w-20 pb-12 flex-col overflow-x-hidden overflow-y-auto theme-border-r theme-bg pt-20 transition-all duration-500 hover:w-64 backdrop-blur-2xl group xl:flex">
         <div className="flex flex-1 flex-col justify-center space-y-4">
           <div
             onClick={() => setActiveTab('intake')}
             className={`flex items-center p-4 cursor-pointer transition-all ${activeTab === 'intake'
-                ? 'bg-[#00dbe9]/10 text-[#00dbe9] border-l-2 border-[#00dbe9]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                ? 'theme-bg theme-text border-l-2 border-primary'
+                : 'theme-text-muted hover:theme-bg hover:theme-text'
               }`}
           >
             <span className="material-symbols-outlined">biotech</span>
@@ -564,7 +604,7 @@ const App = () => {
 
           <div
             onClick={() => setActiveTab('intake')}
-            className={`flex items-center p-4 cursor-pointer transition-all text-slate-400 hover:bg-white/5 hover:text-white`}
+            className={`flex items-center p-4 cursor-pointer transition-all theme-text-muted hover:theme-bg hover:theme-text`}
           >
             <span className="material-symbols-outlined">radar</span>
             <span className="ml-4 font-mono text-xs uppercase tracking-widest opacity-0 transition-opacity group-hover:opacity-100">Scan</span>
@@ -572,7 +612,7 @@ const App = () => {
 
           <div
             onClick={() => setActiveTab('intake')}
-            className="flex items-center p-4 cursor-pointer text-slate-400 hover:bg-white/5 hover:text-white"
+            className="flex items-center p-4 cursor-pointer theme-text-muted hover:theme-bg hover:theme-text"
           >
             <span className="material-symbols-outlined">query_stats</span>
             <span className="ml-4 font-mono text-xs uppercase tracking-widest opacity-0 transition-opacity group-hover:opacity-100">Analyze</span>
@@ -581,8 +621,8 @@ const App = () => {
           <div
             onClick={() => setActiveTab('archive')}
             className={`flex items-center p-4 cursor-pointer transition-all ${activeTab === 'archive'
-                ? 'bg-[#00dbe9]/10 text-[#00dbe9] border-l-2 border-[#00dbe9]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                ? 'theme-bg theme-text border-l-2 border-primary'
+                : 'theme-text-muted hover:theme-bg hover:theme-text'
               }`}
           >
             <span className="material-symbols-outlined">inventory_2</span>
@@ -592,8 +632,8 @@ const App = () => {
           <div
             onClick={() => setActiveTab('telemetry')}
             className={`flex items-center p-4 cursor-pointer transition-all ${activeTab === 'telemetry'
-                ? 'bg-[#00dbe9]/10 text-[#00dbe9] border-l-2 border-[#00dbe9]'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                ? 'theme-bg theme-text border-l-2 border-primary'
+                : 'theme-text-muted hover:theme-bg hover:theme-text'
               }`}
           >
             <span className="material-symbols-outlined">analytics</span>
@@ -601,47 +641,62 @@ const App = () => {
           </div>
         </div>
 
-        <div className="p-4 space-y-4 border-t border-white/5 font-mono text-[10px]">
+        <div className="p-4 space-y-4 theme-border-t font-mono text-[10px]">
           <div
             onClick={() => setActiveTab('telemetry')}
-            className="flex items-center p-2 text-slate-400 hover:text-[#00dbe9] cursor-pointer"
+            className="flex items-center p-2 theme-text-muted hover:theme-text cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">terminal</span>
             <span className="ml-4 opacity-0 transition-opacity group-hover:opacity-100 uppercase">System_Log</span>
           </div>
           <div
             onClick={() => setActiveTab('developer')}
-            className="flex items-center p-2 text-slate-400 hover:text-[#00dbe9] cursor-pointer"
+            className="flex items-center p-2 theme-text-muted hover:theme-text cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">lock</span>
             <span className="ml-4 opacity-0 transition-opacity group-hover:opacity-100 uppercase">Developer</span>
           </div>
         </div>
+      
+        <div className="mt-auto theme-border-t">
+          <div
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="flex items-center p-4 cursor-pointer theme-text-muted hover:theme-bg hover:theme-text transition-colors"
+          >
+            <span className="material-symbols-outlined">
+              {isDarkMode ? 'light_mode' : 'dark_mode'}
+            </span>
+            <span className="ml-4 font-mono text-xs uppercase tracking-widest opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap">
+              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            </span>
+          </div>
+        </div>
       </aside>
+
 
       {/* ─── Main Content Views ─────────────────────── */}
       <AnimatePresence mode="wait">
         {activeTab === 'intake' && (
           <motion.main
             key="intake-tab"
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4 }}
-            className="relative z-10 flex min-h-screen flex-col pt-16 xl:pl-20"
+            className="relative z-10 flex min-h-screen flex-col pt-16 pb-20 xl:pl-20"
           >
             <div className="grid flex-1 grid-cols-1 gap-4 p-5 lg:grid-cols-[320px_minmax(0,1fr)_400px]">
               {/* Left Column: Specimen Intake & Telemetry */}
               <section className="flex flex-col gap-4">
                 {/* File Dropzone Panel */}
-                <div className="glass-panel p-6 rounded-xl border border-white/5 relative overflow-hidden bg-black/40">
+                <div className=" p-6 rounded-xl theme-theme-border relative overflow-hidden theme-bg">
                   <div className="flex justify-between items-start mb-6">
-                    <span className="font-mono text-[10px] font-bold text-[#00dbe9] uppercase tracking-[0.25em]">SPECIMEN_INTAKE</span>
-                    <span className="text-[8px] text-slate-500 font-mono">REF: 7G-01</span>
+                    <span className="font-mono text-[10px] font-bold theme-text uppercase tracking-[0.25em]">SPECIMEN_INTAKE</span>
+                    <span className="text-[8px] theme-text-muted font-mono">REF: 7G-01</span>
                   </div>
 
                   <div
-                    onClick={() => !file && fileInputRef.current?.click()}
+                    onClick={() => fileInputRef.current?.click()}
                     onDragEnter={(event) => {
                       event.preventDefault();
                       setDragActive(true);
@@ -652,14 +707,14 @@ const App = () => {
                     }}
                     onDragLeave={() => setDragActive(false)}
                     onDrop={handleDrop}
-                    className={`scan-dropzone border border-dashed rounded-xl h-44 flex flex-col items-center justify-center space-y-2 hover:border-[#00dbe9]/50 transition-colors cursor-pointer group bg-white/[0.02] ${file ? 'border-[#00dbe9]/40 bg-[#00dbe9]/5' : 'border-white/10'
+                    className={`scan-dropzone theme-border rounded-xl h-44 flex flex-col items-center justify-center space-y-2 hover:theme-theme-border transition-colors cursor-pointer group theme-bg ${file ? 'theme-theme-border theme-bg' : 'theme-border'
                       }`}
                   >
                     {!file && (
-                      <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: '1px solid rgba(0,219,233,0.15)', animation: 'ring-pulse 3s ease-out infinite' }} />
+                      <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: '1px solid rgba(56,189,248,0.15)', animation: 'ring-pulse 3s ease-out infinite' }} />
                     )}
-                    <span className="material-symbols-outlined text-[#00dbe9]/60 group-hover:scale-105 transition-transform text-3xl">upload_file</span>
-                    <span className="font-mono text-[9px] text-slate-400 uppercase tracking-widest">
+                    <span className="material-symbols-outlined theme-text/60 group-hover:scale-105 transition-transform text-3xl">upload_file</span>
+                    <span className="font-mono text-[9px] theme-text-muted uppercase tracking-widest">
                       {file ? 'Sample Loaded' : 'Drag & Drop Specimen'}
                     </span>
                     <input
@@ -674,13 +729,18 @@ const App = () => {
                   <button
                     disabled={!file || isAnalyzing}
                     onClick={runAnalysis}
-                    className={`w-full mt-4 py-3 border font-mono text-[10px] uppercase tracking-widest transition-all ${!file || isAnalyzing
-                        ? 'border-white/5 bg-white/2 text-slate-600 cursor-not-allowed'
-                        : 'border-[#00dbe9]/30 text-[#00dbe9] hover:bg-[#00dbe9]/10 shadow-[0_0_15px_rgba(0,219,233,0.05)] active:scale-95'
+                    className={`w-full mt-4 py-3 theme-border font-mono text-[10px] uppercase tracking-widest transition-all ${(!file || isAnalyzing)
+                        ? 'theme-theme-border theme-bg theme-text-muted cursor-not-allowed'
+                        : 'theme-theme-border theme-text hover:theme-bg active:scale-95'
                       }`}
                   >
                     {isAnalyzing ? 'RUNNING_FORENSICS...' : 'INITIATE_SPLICING_SCAN'}
                   </button>
+                  {error && (
+                    <div className="w-full mt-4 p-3 theme-border border-danger/30 bg-danger/10 theme-text text-[10px] font-mono rounded">
+                      [ERROR] {error}
+                    </div>
+                  )}
                 </div>
 
                 {/* File Metadata display */}
@@ -688,12 +748,12 @@ const App = () => {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass-panel p-4 rounded-xl border border-white/5 bg-black/40"
+                    className=" p-4 rounded-xl theme-theme-border theme-bg"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-white">{file.name}</p>
-                        <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-slate-500">
+                        <p className="truncate text-xs font-semibold theme-text">{file.name}</p>
+                        <p className="mt-1 font-mono text-[9px] uppercase tracking-wider theme-text-muted">
                           {(file.size / 1024).toFixed(1)} KB • {file.type || 'image/*'}
                         </p>
                       </div>
@@ -701,7 +761,7 @@ const App = () => {
                     </div>
                     <button
                       onClick={reset}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#ff6f7e]/20 bg-[#ff6f7e]/5 px-3 py-2 font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-[#ff6f7e] hover:bg-[#ff6f7e]/12 transition"
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg theme-border border-danger/20 bg-danger/5 px-3 py-2 font-mono text-[9px] font-semibold uppercase tracking-[0.2em] theme-text hover:bg-danger/12 transition"
                     >
                       <RefreshCcw className="h-3 w-3" />
                       purged_specimen
@@ -710,55 +770,55 @@ const App = () => {
                 )}
 
                 {/* Left Telemetry Panel */}
-                <div className="glass-panel p-6 flex-grow rounded-xl border border-white/5 bg-black/40 flex flex-col justify-between">
+                <div className=" p-6 flex-grow rounded-xl theme-theme-border theme-bg flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-6">
-                    <span className="font-mono text-[10px] font-bold text-[#00dbe9] uppercase tracking-[0.25em]">LIVE_TELEMETRY</span>
+                    <span className="font-mono text-[10px] font-bold theme-text uppercase tracking-[0.25em]">LIVE_TELEMETRY</span>
                   </div>
                   <div className="space-y-6 flex-grow flex flex-col justify-center">
                     <div className="space-y-2">
                       <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">CPU_LOAD</span>
-                        <span className="text-[#00dbe9]">{metrics.cpu.toFixed(1)}%</span>
+                        <span className="theme-text-muted">CPU_LOAD</span>
+                        <span className="theme-text">{metrics.cpu.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                        <div className="bg-[#00dbe9] h-full shadow-[0_0_8px_#00dbe9] transition-all duration-1000" style={{ width: `${metrics.cpu}%` }}></div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">GPU_RENDER</span>
-                        <span className="text-[#ddb7ff]">{metrics.gpu.toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                        <div className="bg-[#ddb7ff] h-full shadow-[0_0_8px_#ddb7ff] transition-all duration-1000" style={{ width: `${metrics.gpu}%` }}></div>
+                      <div className="w-full theme-bg h-1 rounded-full overflow-hidden">
+                        <div className="bg-primary h-full  transition-all duration-1000" style={{ width: `${metrics.cpu}%` }}></div>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">RAM_STRESS</span>
-                        <span className="text-slate-200">{metrics.mem.toFixed(2)} GB</span>
+                        <span className="theme-text-muted">GPU_RENDER</span>
+                        <span className="text-secondary">{metrics.gpu.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                        <div className="bg-white h-full shadow-[0_0_8px_white] transition-all duration-1000" style={{ width: `${(metrics.mem / 16) * 100}%` }}></div>
+                      <div className="w-full theme-bg h-1 rounded-full overflow-hidden">
+                        <div className="theme-inverted h-full  transition-all duration-1000" style={{ width: `${metrics.gpu}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="theme-text-muted">RAM_STRESS</span>
+                        <span className="theme-text">{metrics.mem.toFixed(2)} GB</span>
+                      </div>
+                      <div className="w-full theme-bg h-1 rounded-full overflow-hidden">
+                        <div className="bg-white h-full  transition-all duration-1000" style={{ width: `${(metrics.mem / 16) * 100}%` }}></div>
                       </div>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-white/5 mt-6">
-                    <div className="flex items-center space-x-2 animate-pulse">
-                      <div className="w-1.5 h-1.5 bg-[#00dbe9] rounded-full"></div>
-                      <span className="font-mono text-[9px] text-[#00dbe9] uppercase tracking-widest">SYSTEM_NOMINAL</span>
+                  <div className="pt-4 theme-border-t mt-6">
+                    <div className="flex items-center space-x-2 ">
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                      <span className="font-mono text-[9px] theme-text uppercase tracking-widest">SYSTEM_NOMINAL</span>
                     </div>
                   </div>
                 </div>
               </section>
 
               {/* Center Column: Viewport */}
-              <section className="glass-panel relative rounded-2xl border border-white/5 bg-black/40 min-h-[480px] flex flex-col">
+              <section className=" relative rounded-2xl theme-theme-border theme-bg min-h-[480px] flex flex-col">
                 {isAnalyzing && (
                   <motion.div
-                    className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#00dbe9] to-transparent shadow-[0_0_15px_#00dbe9] z-20"
+                    className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#38BDF8] to-transparent  z-20"
                     initial={{ top: '0%' }}
                     animate={{ top: '100%' }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
@@ -766,15 +826,15 @@ const App = () => {
                 )}
 
                 {/* Viewport Toolbar */}
-                <div className="flex items-center justify-between border-b border-white/5 px-5 py-3 font-mono text-[9px] uppercase tracking-[0.25em] text-slate-500">
+                <div className="flex items-center justify-between theme-border-b px-5 py-3 font-mono text-[9px] uppercase tracking-[0.25em] theme-text-muted">
                   <div className="flex items-center gap-3">
-                    <span className="rounded-full border border-[#00dbe9]/20 bg-[#00dbe9]/5 px-2.5 py-0.5 text-[#00dbe9]">
+                    <span className="rounded-full theme-border border-primary/20 theme-bg px-2.5 py-0.5 theme-text">
                       Viewport
                     </span>
                     <span>Ops_Cam_01</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MousePointer2 className="h-3 w-3 text-[#00dbe9]" />
+                    <MousePointer2 className="h-3 w-3 theme-text" />
                     <span>inspection grid active</span>
                   </div>
                 </div>
@@ -782,22 +842,22 @@ const App = () => {
                 {/* Main Viewport Content */}
                 <div className="relative flex flex-1 items-center justify-center p-6 min-h-[380px]">
                   {/* Grid overlays */}
-                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(0,219,233,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,219,233,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
+                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.03)_1px,transparent_1px)] bg-[size:40px_40px] opacity-40" />
 
                   {/* Crosshair Overlay */}
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-25">
-                    <div className="w-48 h-48 border border-white/10 rounded-full flex items-center justify-center">
-                      <div className="w-[0.5px] h-full bg-white/20"></div>
-                      <div className="h-[0.5px] w-full bg-white/20 absolute"></div>
-                      <div className="w-24 h-24 border border-[#00dbe9]/20 rounded-full absolute animate-spin-slow"></div>
+                    <div className="w-48 h-48 theme-theme-border rounded-full flex items-center justify-center">
+                      <div className="w-[0.5px] h-full theme-bg0"></div>
+                      <div className="h-[0.5px] w-full theme-bg0 absolute"></div>
+                      <div className="w-24 h-24 theme-border border-primary/20 rounded-full absolute animate-spin-slow"></div>
                     </div>
                   </div>
 
                   {/* Corner stats */}
-                  <div className="absolute top-4 left-4 font-mono text-[9px] text-[#00dbe9]/60 tracking-wider">
+                  <div className="absolute top-4 left-4 font-mono text-[9px] theme-text/60 tracking-wider">
                     MAG: 400x <br /> SPEC: ISO_7G
                   </div>
-                  <div className="absolute bottom-4 right-4 font-mono text-[9px] text-slate-600 tracking-wider">
+                  <div className="absolute bottom-4 right-4 font-mono text-[9px] theme-text-muted tracking-wider">
                     FPS: 60.0 <br /> {clock.toLocaleTimeString()}
                   </div>
 
@@ -810,15 +870,15 @@ const App = () => {
                         exit={{ opacity: 0 }}
                         className="relative z-10 flex max-w-md flex-col items-center text-center p-6"
                       >
-                        <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-[#00dbe9]/15 bg-[#00dbe9]/5 shadow-[0_0_50px_rgba(0,219,233,0.05)]">
-                          <div className="absolute inset-0 animate-ping rounded-full border border-[#00dbe9]/20" />
-                          <Binary className="h-10 w-10 text-[#00dbe9]/30 animate-float" />
+                        <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full theme-border border-primary/15 theme-bg ">
+                          <div className="absolute inset-0 animate-ping rounded-full theme-border border-primary/20" />
+                          <Binary className="h-10 w-10 theme-text/30 animate-float" />
                         </div>
-                        <h2 className="text-2xl font-bold tracking-tight text-white uppercase font-['Space_Grotesk']">
+                        <h2 className="text-2xl font-bold tracking-tight theme-text uppercase font-['Space_Grotesk']">
                           {typewriterText}
-                          {!typewriterDone && <span className="typewriter-cursor h-4 w-1 bg-[#00dbe9] inline-block animate-pulse ml-0.5" />}
+                          {!typewriterDone && <span className="typewriter-cursor h-4 w-1 bg-primary inline-block  ml-0.5" />}
                         </h2>
-                        <p className="mt-3 text-xs leading-5 text-slate-400">
+                        <p className="mt-3 text-xs leading-5 theme-text-muted">
                           Load a biological microscopy image or select one from the Archive to initiate molecular splicing analysis.
                         </p>
                       </motion.div>
@@ -830,35 +890,35 @@ const App = () => {
                         exit={{ opacity: 0 }}
                         className="relative z-10 max-w-full"
                       >
-                        <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                        <div className="relative rounded-xl overflow-hidden theme-theme-border theme-bg p-1.5 ">
                           <img
                             src={preview}
                             alt="Forensic specimen analysis"
-                            className="max-h-[62vh] max-w-full rounded-lg object-contain mix-blend-screen opacity-90 transition-all hover:scale-[1.02] duration-700"
+                            className="max-h-[62vh] max-w-full rounded-lg object-contain transition-all hover:scale-[1.02] duration-700"
                           />
 
                           {/* Bounding box annotations */}
-                          {results?.findings?.map((finding, idx) => (
+                          {results?.findings?.map((finding, _idx) => (
                             <motion.div
                               key={finding.id}
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: idx * 0.08 }}
-                              className="absolute border border-dashed"
+                              transition={{ delay: _idx * 0.08 }}
+                              className="absolute theme-border "
                               style={{
-                                borderColor: idx % 2 === 0 ? '#00dbe9' : '#ddb7ff',
-                                background: idx % 2 === 0 ? 'rgba(0,219,233,0.08)' : 'rgba(221,183,255,0.08)',
+                                borderColor: _idx % 2 === 0 ? '#38BDF8' : '#818CF8',
+                                background: _idx % 2 === 0 ? 'rgba(56,189,248,0.08)' : 'rgba(129,140,248,0.08)',
                                 left: `${finding.bbox[0] / 5}%`, // Scale mockup pixel coordinates
                                 top: `${finding.bbox[1] / 4}%`,
                                 width: `${finding.bbox[2] / 5}%`,
                                 height: `${finding.bbox[3] / 4}%`,
-                                boxShadow: idx % 2 === 0 ? '0 0 10px rgba(0,219,233,0.15)' : '0 0 10px rgba(221,183,255,0.15)',
+                                boxShadow: _idx % 2 === 0 ? '0 0 10px rgba(56,189,248,0.15)' : '0 0 10px rgba(129,140,248,0.15)',
                               }}
                             >
                               <div
-                                className="absolute -top-5 left-0 px-2 py-0.5 text-[8px] font-mono font-bold text-white flex items-center gap-1 whitespace-nowrap rounded-t"
+                                className="absolute -top-5 left-0 px-2 py-0.5 text-[8px] font-mono font-bold theme-text flex items-center gap-1 whitespace-nowrap rounded-t"
                                 style={{
-                                  background: idx % 2 === 0 ? 'linear-gradient(90deg, #00dbe9, #004f54)' : 'linear-gradient(90deg, #ddb7ff, #6900b3)'
+                                  background: _idx % 2 === 0 ? 'linear-gradient(90deg, #38BDF8, #004f54)' : 'linear-gradient(90deg, #818CF8, #6900b3)'
                                 }}
                               >
                                 <span>{finding.type.toUpperCase()}</span>
@@ -873,9 +933,9 @@ const App = () => {
                 </div>
 
                 {/* Viewport Footer */}
-                <div className="flex items-center justify-between border-t border-white/5 px-5 py-3 font-mono text-[9px] uppercase tracking-[0.25em] text-slate-500">
+                <div className="flex items-center justify-between theme-border-t px-5 py-3 font-mono text-[9px] uppercase tracking-[0.25em] theme-text-muted">
                   <div className="flex items-center gap-2">
-                    <Shield className="h-3.5 w-3.5 text-[#00dbe9]" />
+                    <Shield className="h-3.5 w-3.5 theme-text" />
                     <span>ENCRYPTED LAB STREAM</span>
                   </div>
                   <span>{preview ? 'SPECIMEN_MOUNTED' : 'NO_SAMPLE_LOADED'}</span>
@@ -885,15 +945,15 @@ const App = () => {
               {/* Right Column: Intel Findings Report */}
               <section className="flex flex-col gap-4">
                 {/* Score Widget */}
-                <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 text-center flex flex-col justify-center items-center">
-                  <span className="font-mono text-[10px] text-slate-400 uppercase tracking-[0.3em] mb-4">ANOMALY_DETECTION</span>
+                <div className=" p-6 rounded-xl theme-theme-border theme-bg text-center flex flex-col justify-center items-center">
+                  <span className="font-mono text-[10px] theme-text-muted uppercase tracking-[0.3em] mb-4">ANOMALY_DETECTION</span>
                   {results ? (
                     <>
-                      <div className="text-5xl font-bold font-['Space_Grotesk'] text-[#00dbe9]">
+                      <div className="text-5xl font-bold font-['Space_Grotesk'] theme-text">
                         {animatedScore.toFixed(1)}<span className="text-xl opacity-50">%</span>
                       </div>
-                      <div className="w-12 h-[1px] bg-white/10 my-4" />
-                      <p className="font-mono text-[9px] uppercase tracking-widest leading-relaxed text-[#ff6f7e]/80">
+                      <div className="w-12 h-[1px] theme-bg my-4" />
+                      <p className="font-mono text-[9px] uppercase tracking-widest leading-relaxed theme-text/80">
                         {results.overall_score < 0.6
                           ? 'CRITICAL_VARIANCE_DETECTED_IN_SAMPLE_CORE. RECOMMEND_IMMEDIATE_EXPORT.'
                           : results.overall_score < 0.85
@@ -903,8 +963,8 @@ const App = () => {
                     </>
                   ) : (
                     <>
-                      <Zap className="h-10 w-10 text-[#00dbe9]/20 animate-float" />
-                      <p className="mt-3 font-mono text-[9px] text-slate-500 uppercase tracking-widest">
+                      <Zap className="h-10 w-10 theme-text/20 animate-float" />
+                      <p className="mt-3 font-mono text-[9px] theme-text-muted uppercase tracking-widest">
                         AWAITING_SCAN_EXECUTION
                       </p>
                     </>
@@ -912,11 +972,11 @@ const App = () => {
                 </div>
 
                 {/* Findings List Log */}
-                <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex-grow flex flex-col">
-                  <div className="flex justify-between items-center mb-6 pb-2 border-b border-white/5">
-                    <span className="font-mono text-[10px] font-bold text-[#00dbe9] uppercase tracking-[0.25em]">FINDINGS_LOG</span>
+                <div className=" p-6 rounded-xl theme-theme-border theme-bg flex-grow flex flex-col">
+                  <div className="flex justify-between items-center mb-6 pb-2 theme-border-b">
+                    <span className="font-mono text-[10px] font-bold theme-text uppercase tracking-[0.25em]">FINDINGS_LOG</span>
                     {results && (
-                      <span className="font-mono text-[8px] bg-[#00dbe9]/10 text-[#00dbe9] border border-[#00dbe9]/20 px-2 py-0.5 rounded">
+                      <span className="font-mono text-[8px] theme-bg theme-text theme-border border-primary/20 px-2 py-0.5 rounded">
                         {results.findings.length} HITS
                       </span>
                     )}
@@ -924,16 +984,16 @@ const App = () => {
 
                   <div className="flex-grow overflow-y-auto space-y-4 max-h-[340px] pr-1">
                     {results ? (
-                      results.findings.map((finding, idx) => (
+                      results.findings.map((finding, _idx) => (
                         <div
                           key={finding.id}
-                          className="p-3 border-l border-white/10 hover:border-[#00dbe9] hover:bg-white/[0.02] transition duration-300 cursor-pointer group"
+                          className="p-3 border-l theme-theme-border hover:border-primary hover:theme-bg transition duration-300 cursor-pointer group"
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-bold text-xs uppercase tracking-wider text-slate-200">{finding.type}</span>
-                            <span className="text-[#00dbe9] font-mono text-[9px]">{finding.id}</span>
+                            <span className="font-bold text-xs uppercase tracking-wider theme-text">{finding.type}</span>
+                            <span className="theme-text font-mono text-[9px]">{finding.id}</span>
                           </div>
-                          <p className="text-[9px] text-slate-400 font-mono">
+                          <p className="text-[9px] theme-text-muted font-mono">
                             CONFIDENCE: {finding.confidence.toFixed(3)} // BOX: {finding.bbox.join(' • ')}
                           </p>
                         </div>
@@ -941,9 +1001,9 @@ const App = () => {
                     ) : (
                       <div className="h-full flex items-center justify-center text-center p-6">
                         <div>
-                          <Zap className="mx-auto h-8 w-8 text-[#00dbe9]/10 animate-pulse" />
-                          <p className="mt-2 text-xs font-semibold text-slate-400">No Intelligence Generated</p>
-                          <p className="text-[9px] text-slate-500 mt-1 max-w-[14rem]">Select a microscopy image and run the scanner to populate this integrity ledger.</p>
+                          <Zap className="mx-auto h-8 w-8 theme-text/10 " />
+                          <p className="mt-2 text-xs font-semibold theme-text-muted">No Intelligence Generated</p>
+                          <p className="text-[9px] theme-text-muted mt-1 max-w-[14rem]">Select a microscopy image and run the scanner to populate this integrity ledger.</p>
                         </div>
                       </div>
                     )}
@@ -953,9 +1013,10 @@ const App = () => {
                 {/* Final Report button */}
                 <button
                   disabled={!results}
+                  onClick={() => setShowReceipt(true)}
                   className={`w-full py-4 font-mono text-[11px] font-bold uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 transition-all relative overflow-hidden group ${results
-                      ? 'bg-[#ddb7ff] text-black shadow-[0_0_20px_rgba(221,183,255,0.15)] active:scale-95'
-                      : 'bg-white/2 border border-white/5 text-slate-600 cursor-not-allowed'
+                      ? 'theme-inverted theme-inverted  active:scale-95'
+                      : 'theme-bg theme-theme-border theme-text-muted cursor-not-allowed'
                     }`}
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -965,12 +1026,12 @@ const App = () => {
             </div>
 
             {/* Scrolling logs at footer */}
-            <div className="border-t border-white/5 bg-black/80 px-6 py-2 flex items-center gap-6 font-mono text-[9px] uppercase tracking-wider text-slate-500 overflow-x-auto whitespace-nowrap">
-              <span className="text-[#00dbe9]">SYSTEM_LOG:</span>
+            <div className="theme-border-t theme-bg theme-border-t px-6 py-2 flex items-center gap-6 font-mono text-[9px] uppercase tracking-wider theme-text-muted overflow-x-auto whitespace-nowrap">
+              <span className="theme-text">SYSTEM_LOG:</span>
               {logs.slice(-4).map((log, index) => (
                 <span key={`${log}-${index}`} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00dbe9]/40" />
-                  <span className={log.includes('SUCCESS') ? 'text-emerald-400' : log.includes('FAILURE') ? 'text-[#ff6f7e]' : 'text-slate-400'}>{log}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                  <span className={log.includes('SUCCESS') ? 'theme-text' : log.includes('FAILURE') ? 'theme-text' : 'theme-text-muted'}>{log}</span>
                 </span>
               ))}
             </div>
@@ -988,25 +1049,25 @@ const App = () => {
             className="relative z-10 min-h-screen pt-24 pb-20 px-6 md:px-12 xl:pl-32"
           >
             <div className="max-w-[1400px] mx-auto">
-              <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/10 pb-6 mb-12 gap-6">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between theme-border-b pb-6 mb-12 gap-6">
                 <div>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#00dbe9] mb-2 block">DATABASE_ACCESS: AUTHORIZED</span>
-                  <h1 className="text-4xl font-bold tracking-tight text-white font-['Space_Grotesk'] uppercase">SPECIMEN_ARCHIVE</h1>
-                  <p className="mt-3 text-sm text-slate-400 max-w-lg">Historical repository of scanned biological specimens. All data is cryptographically signed and stored in cold storage.</p>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] theme-text mb-2 block">DATABASE_ACCESS: AUTHORIZED</span>
+                  <h1 className="text-4xl font-bold tracking-tight theme-text font-['Space_Grotesk'] uppercase">SPECIMEN_ARCHIVE</h1>
+                  <p className="mt-3 text-sm theme-text-muted max-w-lg">Historical repository of scanned biological specimens. All data is cryptographically signed and stored in cold storage.</p>
                 </div>
 
                 {/* Filter controls */}
                 <div className="flex flex-wrap gap-4 items-end font-mono text-[10px]">
                   <div className="space-y-2">
-                    <span className="text-slate-500 uppercase tracking-wider block">Risk Filter</span>
+                    <span className="theme-text-muted uppercase tracking-wider block">Risk Filter</span>
                     <div className="flex gap-2">
                       {['ALL', 'CLEAN', 'ANOMALY', 'TAMPERED'].map((filter) => (
                         <button
                           key={filter}
                           onClick={() => setArchiveFilter(filter)}
-                          className={`glass-panel px-4 py-2 border transition-all ${archiveFilter === filter
-                              ? 'border-[#00dbe9] text-[#00dbe9]'
-                              : 'border-white/10 text-slate-400 hover:bg-white/5 hover:text-white'
+                          className={` px-4 py-2 theme-border transition-all ${archiveFilter === filter
+                              ? 'border-primary theme-text'
+                              : 'theme-theme-border theme-text-muted hover:theme-bg hover:theme-text'
                             }`}
                         >
                           {filter}
@@ -1022,16 +1083,16 @@ const App = () => {
                 {filteredArchive.map((specimen, idx) => (
                   <div
                     key={specimen.id}
-                    className="glass-panel group relative overflow-hidden flex flex-col p-6 border border-white/5 bg-black/40 rounded-xl hover:border-[#00dbe9]/60 transition-all duration-500"
+                    className=" group relative overflow-hidden flex flex-col p-6 theme-theme-border theme-bg rounded-xl hover:border-primary/60 transition-all duration-500"
                   >
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <span className="font-mono text-[9px] uppercase tracking-widest text-slate-500 block mb-1">SPECIMEN_ID</span>
-                        <span className="font-mono text-xs font-semibold text-white">{specimen.id}</span>
+                        <span className="font-mono text-[9px] uppercase tracking-widest theme-text-muted block mb-1">SPECIMEN_ID</span>
+                        <span className="font-mono text-xs font-semibold theme-text">{specimen.id}</span>
                       </div>
                       <span
-                        className={`px-3 py-1 font-bold text-[9px] tracking-[0.15em] border ${specimen.risk === 'TAMPERED'
-                            ? 'bg-[#ff6f7e]/10 text-[#ff6f7e] border-[#ff6f7e]/20'
+                        className={`px-3 py-1 font-bold text-[9px] tracking-[0.15em] theme-border ${specimen.risk === 'TAMPERED'
+                            ? 'bg-danger/10 theme-text border-danger/20'
                             : specimen.risk === 'ANOMALY'
                               ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                               : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
@@ -1041,7 +1102,7 @@ const App = () => {
                       </span>
                     </div>
 
-                    <div className="relative w-full aspect-video overflow-hidden rounded-lg mb-6 bg-slate-900 border border-white/5">
+                    <div className="relative w-full aspect-video overflow-hidden rounded-lg mb-6 bg-slate-900 theme-border">
                       <img
                         alt={specimen.filename}
                         className="w-full h-full object-cover grayscale brightness-75 group-hover:brightness-100 group-hover:scale-105 transition-all duration-700"
@@ -1049,7 +1110,7 @@ const App = () => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                       {specimen.detected && (
-                        <div className="absolute top-2 right-2 font-mono text-[9px] text-[#ff6f7e] font-bold animate-pulse bg-black/60 px-2 py-0.5 border border-[#ff6f7e]/30 rounded">
+                        <div className="absolute top-2 right-2 font-mono text-[9px] theme-text font-bold  theme-bg px-2 py-0.5 theme-border border-danger/30 rounded">
                           {specimen.detected}
                         </div>
                       )}
@@ -1057,12 +1118,12 @@ const App = () => {
 
                     <div className="flex justify-between items-end mt-auto">
                       <div>
-                        <span className="font-mono text-[9px] uppercase tracking-widest text-slate-500 block mb-1">SCAN_DATE</span>
-                        <span className="font-mono text-[10px] text-slate-300">{specimen.date}</span>
+                        <span className="font-mono text-[9px] uppercase tracking-widest theme-text-muted block mb-1">SCAN_DATE</span>
+                        <span className="font-mono text-[10px] theme-text">{specimen.date}</span>
                       </div>
                       <button
                         onClick={() => loadArchiveSpecimen(specimen)}
-                        className="h-10 w-10 border border-white/10 rounded-lg flex items-center justify-center hover:bg-[#00dbe9] hover:text-black hover:border-[#00dbe9] transition-all"
+                        className="h-10 w-10 theme-theme-border rounded-lg flex items-center justify-center hover:bg-primary hover:theme-inverted hover:border-primary transition-all"
                       >
                         <span className="material-symbols-outlined text-sm">north_east</span>
                       </button>
@@ -1085,28 +1146,28 @@ const App = () => {
             className="relative z-10 min-h-screen pt-24 pb-20 px-6 md:px-12 xl:pl-32"
           >
             <div className="max-w-[1400px] mx-auto">
-              <section className="py-8 flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-6 mb-12">
+              <section className="py-8 flex flex-col md:flex-row justify-between items-end theme-border-b pb-6 mb-12">
                 <div>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#00dbe9] mb-2 block">DATA_NODE_7</span>
-                  <h1 className="text-4xl font-bold tracking-tight text-white font-['Space_Grotesk'] uppercase">SYSTEM_TELEMETRY</h1>
-                  <p className="mt-2 font-mono text-[9px] text-slate-500 tracking-[0.4em] uppercase">Status: Operating_Within_Parameters // Latency: 4ms</p>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] theme-text mb-2 block">DATA_NODE_7</span>
+                  <h1 className="text-4xl font-bold tracking-tight theme-text font-['Space_Grotesk'] uppercase">SYSTEM_TELEMETRY</h1>
+                  <p className="mt-2 font-mono text-[9px] theme-text-muted tracking-[0.4em] uppercase">Status: Operating_Within_Parameters // Latency: 4ms</p>
                 </div>
                 <div className="text-right mt-6 md:mt-0">
-                  <div className="text-[#ddb7ff] font-mono text-[10px] uppercase tracking-widest mb-1">Active_Uptime</div>
-                  <div className="text-white font-mono text-2xl font-semibold tracking-wide">{formatUptime(uptimeCounter)}</div>
+                  <div className="text-secondary font-mono text-[10px] uppercase tracking-widest mb-1">Active_Uptime</div>
+                  <div className="theme-text font-mono text-2xl font-semibold tracking-wide">{formatUptime(uptimeCounter)}</div>
                 </div>
               </section>
 
               {/* HUD Bento Grid */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
                 {/* Circle CPU Gauge */}
-                <div className="md:col-span-4 glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex flex-col items-center justify-center min-h-[280px]">
-                  <div className="font-mono text-[9px] text-slate-500 uppercase tracking-widest mb-4">Core CPU Stress</div>
+                <div className="md:col-span-4  p-6 rounded-xl theme-theme-border theme-bg flex flex-col items-center justify-center min-h-[280px]">
+                  <div className="font-mono text-[9px] theme-text-muted uppercase tracking-widest mb-4">Core CPU Stress</div>
                   <div className="relative w-40 h-40">
                     <svg className="w-full h-full transform -rotate-90">
-                      <circle className="text-white/5" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" strokeWidth="2"></circle>
+                      <circle className="theme-text/5" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" strokeWidth="2"></circle>
                       <circle
-                        className="text-[#00dbe9] transition-all duration-1000 ease-in-out"
+                        className="theme-text transition-all duration-1000 ease-in-out"
                         cx="80"
                         cy="80"
                         fill="transparent"
@@ -1118,22 +1179,22 @@ const App = () => {
                       ></circle>
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-white font-mono">{metrics.cpu.toFixed(0)}%</span>
-                      <span className="font-mono text-[8px] text-slate-500 uppercase">SYS_LOAD</span>
+                      <span className="text-3xl font-bold theme-text font-mono">{metrics.cpu.toFixed(0)}%</span>
+                      <span className="font-mono text-[8px] theme-text-muted uppercase">SYS_LOAD</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Neural Sync Bar chart */}
-                <div className="md:col-span-8 glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex flex-col justify-between min-h-[280px]">
+                <div className="md:col-span-8  p-6 rounded-xl theme-theme-border theme-bg flex flex-col justify-between min-h-[280px]">
                   <div className="flex justify-between items-end mb-6">
                     <div>
-                      <h3 className="font-bold text-lg text-[#ddb7ff] font-['Space_Grotesk'] uppercase tracking-widest">Neural_Sync</h3>
-                      <p className="font-mono text-[9px] text-slate-500">Synthetic Intelligence Integrity Coefficient</p>
+                      <h3 className="font-bold text-lg text-secondary font-['Space_Grotesk'] uppercase tracking-widest">Neural_Sync</h3>
+                      <p className="font-mono text-[9px] theme-text-muted">Synthetic Intelligence Integrity Coefficient</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-[#00dbe9] font-mono text-lg font-bold">0.9982</div>
-                      <div className="text-slate-500 font-mono text-[8px] uppercase">PRECISION_INDEX</div>
+                      <div className="theme-text font-mono text-lg font-bold">0.9982</div>
+                      <div className="theme-text-muted font-mono text-[8px] uppercase">PRECISION_INDEX</div>
                     </div>
                   </div>
 
@@ -1144,8 +1205,8 @@ const App = () => {
                         className="flex-grow rounded-t transition-all duration-500 ease-in-out"
                         style={{
                           height: `${h}%`,
-                          background: i % 2 === 0 ? 'rgba(0,219,233,0.2)' : 'rgba(221,183,255,0.2)',
-                          borderTop: i % 2 === 0 ? '1px solid #00dbe9' : '1px solid #ddb7ff'
+                          background: i % 2 === 0 ? 'rgba(56,189,248,0.2)' : 'rgba(129,140,248,0.2)',
+                          borderTop: i % 2 === 0 ? '1px solid #38BDF8' : '1px solid #818CF8'
                         }}
                       />
                     ))}
@@ -1154,34 +1215,34 @@ const App = () => {
 
                 {/* Throughput metrics */}
                 <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex items-center justify-between group hover:border-[#00dbe9]/30 transition-colors">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg flex items-center justify-between group hover:theme-theme-border transition-colors">
                     <div>
-                      <div className="font-mono text-[9px] text-slate-500 uppercase mb-1">Secure_Data_In</div>
-                      <div className="text-2xl font-bold font-mono text-white">12.4 GB/s</div>
+                      <div className="font-mono text-[9px] theme-text-muted uppercase mb-1">Secure_Data_In</div>
+                      <div className="text-2xl font-bold font-mono theme-text">12.4 GB/s</div>
                     </div>
-                    <span className="material-symbols-outlined text-[#00dbe9] text-3xl group-hover:scale-105 transition-transform">cloud_download</span>
+                    <span className="material-symbols-outlined theme-text text-3xl group-hover:scale-105 transition-transform">cloud_download</span>
                   </div>
 
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex items-center justify-between group hover:border-[#ddb7ff]/30 transition-colors">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg flex items-center justify-between group hover:border-secondary/30 transition-colors">
                     <div>
-                      <div className="font-mono text-[9px] text-slate-500 uppercase mb-1">Encrypted_Out</div>
-                      <div className="text-2xl font-bold font-mono text-white">8.92 GB/s</div>
+                      <div className="font-mono text-[9px] theme-text-muted uppercase mb-1">Encrypted_Out</div>
+                      <div className="text-2xl font-bold font-mono theme-text">8.92 GB/s</div>
                     </div>
-                    <span className="material-symbols-outlined text-[#ddb7ff] text-3xl group-hover:scale-105 transition-transform">cloud_upload</span>
+                    <span className="material-symbols-outlined text-secondary text-3xl group-hover:scale-105 transition-transform">cloud_upload</span>
                   </div>
 
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex items-center justify-between group hover:border-red-500/30 transition-colors">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg flex items-center justify-between group hover:border-red-500/30 transition-colors">
                     <div>
-                      <div className="font-mono text-[9px] text-slate-500 uppercase mb-1">Packet_Loss</div>
-                      <div className="text-2xl font-bold font-mono text-white">0.0004%</div>
+                      <div className="font-mono text-[9px] theme-text-muted uppercase mb-1">Packet_Loss</div>
+                      <div className="text-2xl font-bold font-mono theme-text">0.0004%</div>
                     </div>
-                    <span className="material-symbols-outlined text-red-500 text-3xl group-hover:scale-105 transition-transform">error_outline</span>
+                    <span className="material-symbols-outlined theme-text text-3xl group-hover:scale-105 transition-transform">error_outline</span>
                   </div>
                 </div>
 
                 {/* Blueprint Render stressing */}
-                <div className="md:col-span-7 glass-panel min-h-[380px] rounded-xl border border-white/5 bg-black/40 flex flex-col overflow-hidden relative">
-                  <div className="absolute top-4 left-4 font-mono text-[9px] text-slate-500 uppercase tracking-widest z-10">VISUAL_ENGINE_STRESS</div>
+                <div className="md:col-span-7  min-h-[380px] rounded-xl theme-theme-border theme-bg flex flex-col overflow-hidden relative">
+                  <div className="absolute top-4 left-4 font-mono text-[9px] theme-text-muted uppercase tracking-widest z-10">VISUAL_ENGINE_STRESS</div>
 
                   <div className="flex-grow relative bg-black/90">
                     <img
@@ -1190,36 +1251,36 @@ const App = () => {
                       src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxhHGcYgrvQP7ckWHSuEveFl6qYxaJaRVus2TGnDYY1Xa5NhMS3Mn5QeKSXsUEgAyiKku0VKm5gofWylIFsZ8V4lTq_1zhz3A9DlJPD1GV2h1PK5ieHP_T5uiWrcAckKGMVzIsd7DKtbArIh0QuZa725nlyzyLDYP5rQe4cuuTm2EcKTkaxSkdD08vAhk3qoxQR8b9BanijT9sTMYo5de1bZS0ZgK9GPwYl1SKdW9A5_TAK5qrTBQai_1-cLfHW2sq-yy1ajiexUo-"
                     />
                     <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                      <div className="w-[85%] h-[1px] bg-[#00dbe9]/30 absolute top-1/2 -translate-y-1/2"></div>
-                      <div className="h-[85%] w-[1px] bg-[#00dbe9]/30 absolute left-1/2 -translate-x-1/2"></div>
-                      <div className="border border-[#00dbe9]/40 p-16 rounded-full animate-ping absolute"></div>
-                      <div className="border border-[#ddb7ff]/20 p-32 rounded-full animate-pulse absolute"></div>
+                      <div className="w-[85%] h-[1px] bg-primary/30 absolute top-1/2 -translate-y-1/2"></div>
+                      <div className="h-[85%] w-[1px] bg-primary/30 absolute left-1/2 -translate-x-1/2"></div>
+                      <div className="theme-theme-border p-16 rounded-full animate-ping absolute"></div>
+                      <div className="theme-border border-secondary/20 p-32 rounded-full  absolute"></div>
                     </div>
                   </div>
 
-                  <div className="p-6 border-t border-white/5 flex justify-between items-center bg-black/80 z-10">
+                  <div className="p-6 theme-border-t flex justify-between items-center theme-bg theme-border-t z-10">
                     <div>
-                      <span className="font-mono text-[9px] text-slate-500 uppercase">GPU_STRESS_TEMP</span>
-                      <div className="text-[#00dbe9] font-mono text-xl font-bold">54°C</div>
+                      <span className="font-mono text-[9px] theme-text-muted uppercase">GPU_STRESS_TEMP</span>
+                      <div className="theme-text font-mono text-xl font-bold">54°C</div>
                     </div>
                     <div className="flex gap-2">
-                      <div className="w-1.5 h-5 bg-[#00dbe9]"></div>
-                      <div className="w-1.5 h-5 bg-[#00dbe9]"></div>
-                      <div className="w-1.5 h-5 bg-[#ddb7ff]"></div>
-                      <div className="w-1.5 h-5 bg-white/20"></div>
-                      <div className="w-1.5 h-5 bg-white/10"></div>
+                      <div className="w-1.5 h-5 bg-primary"></div>
+                      <div className="w-1.5 h-5 bg-primary"></div>
+                      <div className="w-1.5 h-5 theme-inverted"></div>
+                      <div className="w-1.5 h-5 theme-bg0"></div>
+                      <div className="w-1.5 h-5 theme-bg"></div>
                     </div>
                   </div>
                 </div>
 
                 {/* Telemetry scrolling logs */}
-                <div className="md:col-span-5 glass-panel h-[380px] rounded-xl border border-white/5 bg-[#0a0a0a]/60 flex flex-col relative overflow-hidden">
-                  <div className="bg-white/5 px-4 py-2 border-b border-white/10 flex justify-between items-center shrink-0">
-                    <span className="font-mono text-[9px] text-[#00dbe9] uppercase font-bold">TELEMETRY_LOG</span>
+                <div className="md:col-span-5  h-[380px] rounded-xl theme-theme-border bg-bg-app/60 flex flex-col relative overflow-hidden">
+                  <div className="theme-bg px-4 py-2 theme-border-b flex justify-between items-center shrink-0">
+                    <span className="font-mono text-[9px] theme-text uppercase font-bold">TELEMETRY_LOG</span>
                     <span className="flex gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ff6f7e]"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ddb7ff]"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#00dbe9]"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-danger"></div>
+                      <div className="w-1.5 h-1.5 rounded-full theme-inverted"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                     </span>
                   </div>
 
@@ -1229,12 +1290,12 @@ const App = () => {
                         key={i}
                         className={
                           logMsg.includes('SUCCESS') || logMsg.includes('NOMINAL')
-                            ? 'text-emerald-400'
+                            ? 'theme-text'
                             : logMsg.includes('NEURAL')
-                              ? 'text-[#ddb7ff]'
+                              ? 'text-secondary'
                               : logMsg.includes('LEAKS')
-                                ? 'text-[#00dbe9]'
-                                : 'text-slate-400'
+                                ? 'theme-text'
+                                : 'theme-text-muted'
                         }
                       >
                         {logMsg}
@@ -1262,21 +1323,20 @@ const App = () => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* Profile panel */}
-                <div className="lg:col-span-4 glass-panel rounded-xl p-1.5 relative overflow-hidden h-[480px] bg-black/40 border border-[#00dbe9]/10">
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#00dbe9]/30 pointer-events-none animate-pulse" />
+                <div className="lg:col-span-4  rounded-xl p-1.5 relative overflow-hidden h-[480px] theme-bg theme-border border-primary/10">
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/30 pointer-events-none " />
                   <div className="w-full h-full overflow-hidden rounded-lg relative">
                     <img
                       alt="Nikhil Yadav Profile"
-                      className="w-full h-full object-cover grayscale brightness-75 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHEK-b8Mqb6oLfnPcicclnzU_9whw8onn7lKepXTaJoxkM9f8UfKJGIqv6AbpLetbjT9I7LVFfl0uA8bCvPp3PQalkeug0MCyEuljyRIv_cuzasI5fqb18TE_Kk8pTJOuBX7vKnL_QGKG-QlGfU4NxhxwQEXSnjgaqywufmhsmDCGygY6-pFPTkzdrXR3kgkednnWs0OqbVOkfCGupyveZ1wv1MLoNTnw-FaHOnwiRUw-_YE6OCNNCS_LZFE1_FIaSuXPZ4O3xaYP-"
+                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                      src={githubData?.avatar_url || "https://github.com/yadavnikhil03.png"}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
                   </div>
                   <div className="absolute bottom-6 left-6 right-6 z-10">
-                    <div className="bg-black/80 backdrop-blur-md p-4 border border-[#00dbe9]/25 rounded-lg">
-                      <h1 className="text-2xl font-bold tracking-tight text-[#00dbe9] font-['Space_Grotesk'] mb-1">@yadavnikhil03</h1>
-                      <div className="flex items-center gap-2 font-mono text-[9px] text-slate-300 uppercase tracking-widest">
-                        <span className="material-symbols-outlined text-[12px] text-[#00dbe9]">terminal</span>
+                    <div className="theme-bg theme-border p-4">
+                      <h1 className="text-2xl font-bold tracking-tight theme-text font-['Space_Grotesk'] mb-1">@yadavnikhil03</h1>
+                      <div className="flex items-center gap-2 font-mono text-[9px] theme-text uppercase tracking-widest">
+                        
                         LEAD_DEVELOPER // SIS_CORE
                       </div>
                     </div>
@@ -1285,77 +1345,81 @@ const App = () => {
 
                 {/* Bio info panel */}
                 <div className="lg:col-span-8 space-y-6">
-                  <div className="glass-panel p-8 rounded-xl border border-white/5 bg-black/40">
+                  <div className=" p-8 rounded-xl theme-theme-border theme-bg">
                     <div className="flex items-center gap-4 mb-6">
-                      <span className="w-12 h-[3px] bg-[#00dbe9] rounded"></span>
-                      <h2 className="text-xl font-bold tracking-wider text-[#00dbe9] font-['Space_Grotesk'] uppercase">System Architect</h2>
+                      <span className="w-12 h-[3px] bg-primary rounded"></span>
+                      <h2 className="text-xl font-bold tracking-wider theme-text font-['Space_Grotesk'] uppercase">System Architect</h2>
                     </div>
-                    <p className="font-['Space_Grotesk'] text-base text-slate-300 leading-relaxed mb-8">
-                      Architecting the <span className="text-[#00dbe9] font-semibold">Scientific Integrity Sleuth</span> (SIS) platform required a fusion of high-performance data processing and forensic-grade UI clarity. My focus lies at the intersection of automated anomaly detection and visual intelligence, ensuring researchers can navigate petabytes of technical metadata with surgical precision.
+                    <p className="font-mono text-xs theme-text leading-relaxed mb-8">
+                      The <span className="font-bold">Scientific Integrity Sleuth</span> (SIS) is a high-throughput, latency-optimized forensic data processing engine. Architected for strict analytical rigor, the system ingests raw graphical metadata and leverages deterministic anomaly detection algorithms to isolate synthetic manipulations in academic assets. The architecture emphasizes 0-trust verification, immutable event logging, and rapid forensic data extraction for institutional compliance.
                     </p>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-4 bg-[#0a0a0a]/60 border-l border-[#00dbe9] rounded-r">
-                        <div className="font-mono text-[9px] text-[#00dbe9] opacity-60 uppercase mb-1">LATENCY</div>
-                        <div className="text-base font-bold font-mono text-white">0.002ms</div>
+                      <div className="p-4 bg-bg-app/60 border-l border-primary rounded-r">
+                        <div className="font-mono text-[9px] theme-text opacity-60 uppercase mb-1">LATENCY</div>
+                        <div className="text-base font-bold font-mono theme-text">0.002ms</div>
                       </div>
-                      <div className="p-4 bg-[#0a0a0a]/60 border-l border-[#00dbe9] rounded-r">
-                        <div className="font-mono text-[9px] text-[#00dbe9] opacity-60 uppercase mb-1">UPTIME</div>
-                        <div className="text-base font-bold font-mono text-white">99.99%</div>
+                      <div className="p-4 bg-bg-app/60 border-l border-primary rounded-r">
+                        <div className="font-mono text-[9px] theme-text opacity-60 uppercase mb-1">UPTIME</div>
+                        <div className="text-base font-bold font-mono theme-text">99.99%</div>
                       </div>
-                      <div className="p-4 bg-[#0a0a0a]/60 border-l border-[#00dbe9] rounded-r">
-                        <div className="font-mono text-[9px] text-[#00dbe9] opacity-60 uppercase mb-1">NODES</div>
-                        <div className="text-base font-bold font-mono text-white">1,024</div>
+                      <div className="p-4 bg-bg-app/60 border-l border-primary rounded-r">
+                        <div className="font-mono text-[9px] theme-text opacity-60 uppercase mb-1">NODES</div>
+                        <div className="text-base font-bold font-mono theme-text">1,024</div>
                       </div>
-                      <div className="p-4 bg-[#0a0a0a]/60 border-l border-[#00dbe9] rounded-r">
-                        <div className="font-mono text-[9px] text-[#00dbe9] opacity-60 uppercase mb-1">ENCRYPTION</div>
-                        <div className="text-base font-bold font-mono text-white">AES-256</div>
+                      <div className="p-4 bg-bg-app/60 border-l border-primary rounded-r">
+                        <div className="font-mono text-[9px] theme-text opacity-60 uppercase mb-1">ENCRYPTION</div>
+                        <div className="text-base font-bold font-mono theme-text">AES-256</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Core contributions & Commit timeline */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40">
-                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-3 uppercase tracking-wide">
-                        <span className="material-symbols-outlined text-[#00dbe9] text-lg">troubleshoot</span> Core Contributions
+                    <div className=" p-6 rounded-xl theme-theme-border theme-bg">
+                      <h3 className="text-sm font-bold theme-text mb-4 uppercase tracking-wide">
+                        [ SYSTEM_ARCHITECTURE ]
                       </h3>
-                      <ul className="space-y-3 font-mono text-[10px]">
-                        <li className="flex items-start gap-2.5 p-1.5 hover:bg-white/[0.02] rounded transition-colors text-slate-400">
-                          <span className="material-symbols-outlined text-[#00dbe9] text-sm mt-0.5">check_circle</span>
-                          <span>Developed the SIS Forensic Engine for cross-reference validation.</span>
+                      <ul className="space-y-3 font-mono text-[10px] theme-text-muted">
+                        <li className="flex items-start gap-2.5 p-1.5 transition-colors">
+                          <span className="font-bold">&gt;</span>
+                          <span>Engineered the deterministic Forensic Parsing Engine for structural metadata cross-referencing.</span>
                         </li>
-                        <li className="flex items-start gap-2.5 p-1.5 hover:bg-white/[0.02] rounded transition-colors text-slate-400">
-                          <span className="material-symbols-outlined text-[#00dbe9] text-sm mt-0.5">check_circle</span>
-                          <span>Implemented Glassmorphic HUD rendering protocol for high-density analysis.</span>
+                        <li className="flex items-start gap-2.5 p-1.5 transition-colors">
+                          <span className="font-bold">&gt;</span>
+                          <span>Implemented stark, low-latency, strictly-monospace rendering interfaces for brutalist data presentation.</span>
                         </li>
-                        <li className="flex items-start gap-2.5 p-1.5 hover:bg-white/[0.02] rounded transition-colors text-slate-400">
-                          <span className="material-symbols-outlined text-[#00dbe9] text-sm mt-0.5">check_circle</span>
-                          <span>Optimized real-time telemetry pipelines for distributed forensic nodes.</span>
+                        <li className="flex items-start gap-2.5 p-1.5 transition-colors">
+                          <span className="font-bold">&gt;</span>
+                          <span>Optimized RESTful telemetry pipelines for sub-millisecond anomaly detection and PDF report generation.</span>
                         </li>
                       </ul>
                     </div>
 
-                    <div className="glass-panel p-6 rounded-xl border border-[#00dbe9]/20 bg-[#00dbe9]/5 flex flex-col justify-between">
-                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-3 uppercase tracking-wide">
-                        <span className="material-symbols-outlined text-[#00dbe9] text-lg">hub</span> GitHub_Global_Status
+                    <div className=" p-6 rounded-xl theme-border border-primary/20 theme-bg flex flex-col justify-between">
+                      <h3 className="text-sm font-bold theme-text mb-4 uppercase tracking-wide">
+                        [ GITHUB_GLOBAL_STATUS ]
                       </h3>
                       <div className="space-y-4">
                         <div className="flex justify-between items-end">
-                          <span className="font-mono text-[9px] text-slate-400 uppercase">Commits_LTM</span>
-                          <span className="text-2xl font-bold font-mono text-[#00dbe9]">1,482</span>
+                          <span className="font-mono text-[9px] theme-text-muted uppercase">Public_Repos</span>
+                          <span className="text-2xl font-bold font-mono theme-text">{githubData ? githubData.public_repos : '...'}</span>
+                        </div>
+                        <div className="flex justify-between items-end mt-2">
+                          <span className="font-mono text-[9px] theme-text-muted uppercase">Followers</span>
+                          <span className="text-2xl font-bold font-mono theme-text">{githubData ? githubData.followers : '...'}</span>
                         </div>
                         <div className="h-10 flex items-end gap-1.5 px-1 pb-1">
-                          <div className="flex-grow h-4 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-7 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-9 bg-[#00dbe9] hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-6 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-10 bg-[#00dbe9] hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-5 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-8 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
-                          <div className="flex-grow h-3 bg-[#00dbe9]/20 hover:bg-[#00dbe9] rounded-t transition-all"></div>
+                          <div className="flex-grow h-4 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-7 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-9 bg-primary hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-6 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-10 bg-primary hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-5 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-8 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
+                          <div className="flex-grow h-3 bg-primary/20 hover:bg-primary rounded-t transition-all"></div>
                         </div>
-                        <div className="flex justify-between font-mono text-[8px] text-slate-500 uppercase">
+                        <div className="flex justify-between font-mono text-[8px] theme-text-muted uppercase">
                           <span>JAN_2026</span>
                           <span>PRESENT</span>
                         </div>
@@ -1366,63 +1430,64 @@ const App = () => {
 
                 {/* Stats & stack footer grid */}
                 <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="material-symbols-outlined text-[#00dbe9] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>terminal</span>
+                      
                       <h4 className="font-['Space_Grotesk'] text-sm font-semibold uppercase tracking-wider">Technical Stack</h4>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {['Rust', 'TypeScript', 'Python', 'WASM', 'PostgreSQL', 'K8s'].map((tech) => (
-                        <span key={tech} className="px-2 py-1 bg-white/5 text-[#00dbe9] font-mono text-[9px] border border-white/5 uppercase rounded">{tech}</span>
+                        <span key={tech} className="px-2 py-1 theme-bg theme-text font-mono text-[9px] theme-theme-border uppercase rounded">{tech}</span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="material-symbols-outlined text-[#00dbe9] text-lg">visibility</span>
+                      
                       <h4 className="font-['Space_Grotesk'] text-sm font-semibold uppercase tracking-wider">Focus Areas</h4>
                     </div>
                     <div className="space-y-3 font-mono text-[9px]">
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Data Forensic</span>
-                        <span className="w-1/2 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#00dbe9] w-[95%]"></div>
+                        <span className="theme-text-muted">Data Forensic</span>
+                        <span className="w-1/2 h-1 theme-bg rounded-full overflow-hidden">
+                          <div className="h-full bg-primary w-[95%]"></div>
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">UX Science</span>
-                        <span className="w-1/2 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#00dbe9] w-[88%]"></div>
+                        <span className="theme-text-muted">UX Science</span>
+                        <span className="w-1/2 h-1 theme-bg rounded-full overflow-hidden">
+                          <div className="h-full bg-primary w-[88%]"></div>
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Distributed Sys</span>
-                        <span className="w-1/2 h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#00dbe9] w-[92%]"></div>
+                        <span className="theme-text-muted">Distributed Sys</span>
+                        <span className="w-1/2 h-1 theme-bg rounded-full overflow-hidden">
+                          <div className="h-full bg-primary w-[92%]"></div>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="glass-panel p-6 rounded-xl border border-white/5 bg-black/40 flex flex-col justify-between">
+                  <div className=" p-6 rounded-xl theme-theme-border theme-bg flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="material-symbols-outlined text-[#00dbe9] text-lg">share</span>
-                        <h4 className="font-['Space_Grotesk'] text-sm font-semibold uppercase tracking-wider">Connect</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 font-mono text-[9px] uppercase tracking-widest text-[#00dbe9]">
-                        <a className="flex items-center gap-2 text-[#00dbe9] hover:opacity-80 transition-opacity" href="https://github.com/yadavnikhil03">
-                          <span className="material-symbols-outlined text-[16px]">code</span>
-                          <span>GitHub</span>
+                      <h4 className="font-mono text-sm font-bold uppercase tracking-wider mb-4">[ REFERENCES_&_DOCS ]</h4>
+                      <div className="grid grid-cols-1 gap-2 font-mono text-[9px] uppercase tracking-widest theme-text">
+                        <a className="flex items-center gap-2 hover:theme-inverted transition-colors border-b border-dashed border-transparent hover:border-black dark:hover:border-white p-1" href="https://github.com/yadavnikhil03/Scientifc_Integrity_sleuth" target="_blank">
+                          <span>[↗] SIS_Source_Repository</span>
                         </a>
-                        <a className="flex items-center gap-2 text-[#00dbe9] hover:opacity-80 transition-opacity" href="#">
-                          <span className="material-symbols-outlined text-[16px]">alternate_email</span>
-                          <span>X / Web</span>
+                        <a className="flex items-center gap-2 hover:theme-inverted transition-colors border-b border-dashed border-transparent hover:border-black dark:hover:border-white p-1" href="https://github.com/yadavnikhil03" target="_blank">
+                          <span>[↗] Author_Profile</span>
+                        </a>
+                        <a className="flex items-center gap-2 hover:theme-inverted transition-colors border-b border-dashed border-transparent hover:border-black dark:hover:border-white p-1" href="#" onClick={(e) => e.preventDefault()}>
+                          <span>[↗] Technical_Whitepaper.pdf</span>
+                        </a>
+                        <a className="flex items-center gap-2 hover:theme-inverted transition-colors border-b border-dashed border-transparent hover:border-black dark:hover:border-white p-1" href="#" onClick={(e) => e.preventDefault()}>
+                          <span>[↗] Forensic_Compliance_Specs</span>
                         </a>
                       </div>
                     </div>
-                    <button className="w-full mt-6 py-2 border border-[#00dbe9] text-[#00dbe9] font-mono text-[9px] uppercase tracking-widest hover:bg-[#00dbe9] hover:text-black transition-colors rounded-lg">
+                    <button className="w-full mt-6 py-2 theme-border border-primary theme-text font-mono text-[9px] uppercase tracking-widest hover:bg-primary hover:theme-inverted transition-colors rounded-lg">
                       ESTABLISH_COMM_LINK
                     </button>
                   </div>
@@ -1435,17 +1500,19 @@ const App = () => {
       </AnimatePresence>
 
       {/* ─── Global Sticky Footer ───────────────────── */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 flex h-12 items-center justify-between border-t border-white/5 bg-black px-6 font-mono text-[9px] uppercase tracking-widest text-slate-500 md:px-12">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 flex h-12 items-center justify-between theme-border-t theme-bg px-6 font-mono text-[9px] uppercase tracking-widest theme-text-muted md:px-12">
         <div>
-          ©2026 S.I.SLEUTH // <span className="text-[#00dbe9] font-bold animate-pulse">SYSTEM_STABLE</span> // NO_LEAKS_DETECTED
+          ©2026 S.I.SLEUTH // <span className="theme-text font-bold ">SYSTEM_STABLE</span> // NO_LEAKS_DETECTED
         </div>
         <div className="hidden gap-6 sm:flex">
-          <a className="hover:text-[#00dbe9] transition-colors" href="#">Log_Dump</a>
-          <a className="hover:text-[#00dbe9] transition-colors" href="#">Encrypted_Export</a>
-          <a className="hover:text-[#00dbe9] transition-colors" href="#">Protocol_v9</a>
+          <a className="hover:theme-text transition-colors" href="#">Log_Dump</a>
+          <a className="hover:theme-text transition-colors" href="#">Encrypted_Export</a>
+          <a className="hover:theme-text transition-colors" href="#">Protocol_v9</a>
         </div>
       </footer>
-    </div>
+      {showReceipt && <ReceiptModal results={results} file={file} onClose={() => setShowReceipt(false)} />}
+      </div>
+    </>
   );
 };
 

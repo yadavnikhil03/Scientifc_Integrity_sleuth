@@ -21,13 +21,13 @@ button {
 }
 
 @keyframes app-glow {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3)); }
-  50% { filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6)); }
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.3)); }
+  50% { filter: drop-shadow(0 0 20px rgba(129, 140, 248, 0.6)); }
 }
 
 /* Gradient text utility */
 .text-gradient {
-  background: linear-gradient(135deg, #a3a6ff 0%, #53ddfc 50%, #a3a6ff 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary) 50%, var(--primary) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -54,7 +54,7 @@ button {
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.07) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.07) 0%, transparent 70%);
   pointer-events: none;
   transition: left 0.3s ease-out, top 0.3s ease-out;
   transform: translate(-50%, -50%);
@@ -63,16 +63,16 @@ button {
 }
 
 /* Confidence accent borders */
-.confidence-high { border-left: 3px solid #10b981; }
-.confidence-mid { border-left: 3px solid #f59e0b; }
-.confidence-low { border-left: 3px solid #ff6f7e; }
+.confidence-high { border-left: 3px solid var(--emerald); }
+.confidence-mid { border-left: 3px solid var(--amber); }
+.confidence-low { border-left: 3px solid var(--danger); }
 
 /* Typewriter cursor blink */
 .typewriter-cursor {
   display: inline-block;
   width: 2px;
   height: 1em;
-  background: #a3a6ff;
+  background: var(--primary);
   margin-left: 2px;
   animation: cursor-blink 1s step-end infinite;
   vertical-align: text-bottom;
@@ -89,8 +89,8 @@ button {
   top: 0;
   left: 0;
   height: 2px;
-  background: linear-gradient(90deg, #6063ee, #53ddfc, #a3a6ff);
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.6), 0 0 30px rgba(83, 221, 252, 0.3);
+  background: linear-gradient(90deg, var(--primary), var(--primary), var(--primary));
+  box-shadow: 0 0 15px rgba(129, 140, 248, 0.6), 0 0 30px rgba(56, 189, 248, 0.3);
   border-radius: 0 2px 2px 0;
   z-index: 50;
 }
@@ -115,14 +115,14 @@ button {
 
 /* Sidebar and panels differentiation */
 .glass-panel {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(11, 17, 32, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: inset 0 0 20px rgba(0, 219, 233, 0.02);
+  box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.02);
 }
 
 .sidebar-panel {
-  background: rgba(5, 5, 5, 0.6);
-  border-right: 1px solid rgba(0, 219, 233, 0.15) !important;
-  box-shadow: 10px 0 30px rgba(0, 219, 233, 0.05);
+  background: rgba(17, 24, 39, 0.6);
+  border-right: 1px solid rgba(56, 189, 248, 0.15) !important;
+  box-shadow: 10px 0 30px rgba(56, 189, 248, 0.05);
 }
