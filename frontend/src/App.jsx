@@ -114,7 +114,32 @@ const useTypewriter = (text, speed = 50) => {
 /* ─── Main App Component ──────────────────────────── */
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState('intake'); // 'intake' | 'archive' | 'telemetry' | 'developer'
+  const [activeTab, setActiveTabState] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return ['intake', 'archive', 'telemetry', 'developer'].includes(hash) ? hash : 'intake';
+  });
+
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabState(tab);
+    window.history.pushState(null, '', `#${tab}`);
+  }, []);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (['intake', 'archive', 'telemetry', 'developer'].includes(hash)) {
+        setActiveTabState(hash);
+      } else if (!hash) {
+        setActiveTabState('intake');
+      }
+    };
+    window.addEventListener('popstate', handleHashChange);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('popstate', handleHashChange);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   // Intake View States
   const [file, setFile] = useState(null);
