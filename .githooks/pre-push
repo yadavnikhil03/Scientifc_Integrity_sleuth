@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "Running frontend build before push..."
+
+cd frontend || exit 1
+
+npm run build
+if [ $? -ne 0 ]; then
+  echo "Error: Frontend build failed. Please fix before pushing."
+  exit 1
+fi
+
+echo "Frontend build succeeded. Proceeding with push."
+exit 0

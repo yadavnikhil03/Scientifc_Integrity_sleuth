@@ -5,6 +5,7 @@ from typing import List, Optional
 import asyncio
 import time
 import random
+import hashlib
 
 app = FastAPI(
     title="Scientific Integrity Sleuth API",
@@ -73,6 +74,12 @@ async def analyze_image(file: UploadFile = File(...)):
     
     # Simulated forensic data generation
     # In a real app, this would call an AI model
+    
+    # Use content hash for deterministic RNG
+    file_hash = hashlib.sha256(content).hexdigest()
+    seed = int(file_hash[:16], 16)
+    rng = random.Random(seed)
+
     anomaly_types = [
         "Image Manipulation", 
         "Data Inconsistency", 
@@ -82,18 +89,18 @@ async def analyze_image(file: UploadFile = File(...)):
     ]
     
     findings = []
-    num_findings = random.randint(1, 4)
+    num_findings = rng.randint(1, 4)
     
     for i in range(num_findings):
         findings.append(Finding(
-            id=f"ANOMALY_{random.randint(1000, 9999)}",
-            type=random.choice(anomaly_types),
-            confidence=round(random.uniform(0.75, 0.99), 3),
+            id=f"ANOMALY_{rng.randint(1000, 9999)}",
+            type=rng.choice(anomaly_types),
+            confidence=round(rng.uniform(0.75, 0.99), 3),
             bbox=[
-                random.randint(20, 150),
-                random.randint(20, 150),
-                random.randint(50, 200),
-                random.randint(50, 200)
+                rng.randint(20, 150),
+                rng.randint(20, 150),
+                rng.randint(50, 200),
+                rng.randint(50, 200)
             ]
         ))
     
@@ -103,7 +110,7 @@ async def analyze_image(file: UploadFile = File(...)):
         status="completed",
         timestamp=time.time(),
         findings=findings,
-        overall_score=round(random.uniform(0.4, 0.95), 2)
+        overall_score=round(rng.uniform(0.4, 0.95), 2)
     )
 
 if __name__ == "__main__":
